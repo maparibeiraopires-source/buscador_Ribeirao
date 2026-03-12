@@ -119,10 +119,29 @@ const n=v=>Number(v)||0;
 
 async function carregarDados(){
 
+try{
+
 const resp = await fetch("dados.json");
+
+if(!resp.ok){
+throw new Error("dados.json não encontrado");
+}
+
 dados = await resp.json();
 
+console.log("Dados carregados:",dados.length);
+console.table(dados.slice(0,5));
+
 render();
+
+}catch(erro){
+
+console.error("Erro ao carregar JSON:",erro);
+
+document.getElementById("totais").innerHTML=
+"<h2>Erro ao carregar dados.json</h2>";
+
+}
 
 }
 
@@ -144,6 +163,14 @@ const cards=document.getElementById("cards");
 
 cards.innerHTML='';
 
+if(!dados.length){
+
+cards.innerHTML="<h2>Nenhum dado encontrado</h2>";
+
+return;
+
+}
+
 let totalCidade={terra:0,bloq:0,para:0,asf:0};
 
 let contSemSaida=0;
@@ -151,15 +178,20 @@ let contSemSaida=0;
 let contFechada=0;
 
 dados
-.filter(d=>Object.values(d).some(v=>String(v).toLowerCase().includes(termo)))
+.filter(d=>Object.values(d).some(v=>
+String(v || "").toLowerCase().includes(termo)
+))
 .forEach(d=>{
 
-const nomeCompleto=[d['TIPO'],d['COMPLEMENTO DO NOME'],d['NOME']]
-.filter(Boolean).join(' ');
+const nomeCompleto=[
+d['TIPO'],
+d['COMPLEMENTO DO NOME'],
+d['NOME']
+].filter(Boolean).join(' ');
 
 const terra=n(d['TERRA']);
 const bloq=n(d['BLOQUETE']);
-const para=n(d['PARALELEPÍPEDO']);
+const para=n(d['PARALELEPÍPEDO'] || d['PARALELEPIPEDO']);
 const asf=n(d['ASFALTO']);
 
 const totalRua = terra + bloq + para + asf;
@@ -169,7 +201,7 @@ totalCidade.bloq+=bloq;
 totalCidade.para+=para;
 totalCidade.asf+=asf;
 
-const semSaida=String(d['SEM SAÍDA']).toUpperCase()==='SEM SAÍDA';
+const semSaida=String(d['SEM SAÍDA'] || d['SEM SAIDA']).toUpperCase()==='SEM SAÍDA';
 const fechada=String(d['FECHADA']).toUpperCase()==='FECHADA';
 
 if(semSaida) contSemSaida++;
