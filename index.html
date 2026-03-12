@@ -2,23 +2,102 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<title>Análise de Logradouros Urbanos</title>
+<title>Sistema de Análise de Logradouros</title>
+
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
-body{font-family:'Montserrat',sans-serif;background:#f4f6f8;padding:20px}
-h1{margin-bottom:20px}
-.toolbar{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
-input{padding:10px;border-radius:8px;border:1px solid #ccc}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-.card{background:#fff;border-radius:16px;padding:16px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
-.card h3{margin:0 0 8px;font-size:18px}
-.meta{font-size:13px;color:#555}
-.calc{margin-top:8px;font-weight:600}
-.tag{display:inline-block;padding:4px 8px;border-radius:12px;font-size:11px;font-weight:700;margin-right:6px}
-.sem-saida{background:#ffe5e5;color:#a30000}
-.fechada{background:#e5e9ff;color:#1f2ea3}
-.btn{display:inline-block;margin-top:10px;padding:8px 12px;border-radius:8px;background:#1f2937;color:#fff;text-decoration:none;font-size:13px;font-weight:600}
-.totais{margin-top:30px;background:#fff;border-radius:16px;padding:20px;box-shadow:0 6px 18px rgba(0,0,0,.08)}
+
+body{
+font-family:'Montserrat',sans-serif;
+background:#f4f6f8;
+padding:20px
+}
+
+h1{
+margin-bottom:20px
+}
+
+.toolbar{
+display:flex;
+gap:10px;
+margin-bottom:20px;
+flex-wrap:wrap
+}
+
+input{
+padding:10px;
+border-radius:8px;
+border:1px solid #ccc
+}
+
+.cards{
+display:grid;
+grid-template-columns:repeat(auto-fill,minmax(340px,1fr));
+gap:16px
+}
+
+.card{
+background:#fff;
+border-radius:16px;
+padding:16px;
+box-shadow:0 6px 18px rgba(0,0,0,.08)
+}
+
+.card h3{
+margin:0 0 8px;
+font-size:18px
+}
+
+.meta{
+font-size:13px;
+color:#555
+}
+
+.calc{
+margin-top:8px;
+font-weight:600
+}
+
+.tag{
+display:inline-block;
+padding:4px 8px;
+border-radius:12px;
+font-size:11px;
+font-weight:700;
+margin-right:6px
+}
+
+.sem-saida{
+background:#ffe5e5;
+color:#a30000
+}
+
+.fechada{
+background:#e5e9ff;
+color:#1f2ea3
+}
+
+.btn{
+display:inline-block;
+margin-top:10px;
+padding:8px 12px;
+border-radius:8px;
+background:#1f2937;
+color:#fff;
+text-decoration:none;
+font-size:13px;
+font-weight:600
+}
+
+.totais{
+margin-top:30px;
+background:#fff;
+border-radius:16px;
+padding:20px;
+box-shadow:0 6px 18px rgba(0,0,0,.08)
+}
+
 </style>
 </head>
 <body>
@@ -26,104 +105,135 @@ input{padding:10px;border-radius:8px;border:1px solid #ccc}
 <h1>Sistema de Análise de Ruas, Avenidas e Logradouros</h1>
 
 <div class="toolbar">
-  <input type="file" id="fileInput" accept=".ods,.xlsx">
-  <input type="search" id="search" placeholder="Buscar rua, vila, bairro, CEP...">
+<input type="search" id="search" placeholder="Buscar rua, vila, bairro, CEP...">
 </div>
 
 <div class="cards" id="cards"></div>
 <div class="totais" id="totais"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
+
 let dados=[];
+
 const n=v=>Number(v)||0;
 
-fileInput.addEventListener('change',async e=>{
-  const file=e.target.files[0];
-  const buffer=await file.arrayBuffer();
-  const wb=XLSX.read(buffer,{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  dados=XLSX.utils.sheet_to_json(ws,{defval:''});
-  render();
-});
+async function carregarDados(){
 
-search.addEventListener('input',render);
+const resp = await fetch("dados.json");
+dados = await resp.json();
+
+render();
+
+}
+
+document.getElementById("search").addEventListener("input",render);
 
 function coordsParaLink(c){
-  if(!c) return null;
-  return `https://www.google.com/maps?q=${encodeURIComponent(c)}`;
+
+if(!c) return null;
+
+return `https://www.google.com/maps?q=${encodeURIComponent(c)}`;
+
 }
 
 function render(){
-  const termo=search.value.toLowerCase();
-  const cards=document.getElementById('cards');
-  cards.innerHTML='';
 
-  let totalCidade={terra:0,bloq:0,para:0,asf:0};
-  let contSemSaida=0;
-  let contFechada=0;
+const termo=document.getElementById("search").value.toLowerCase();
 
-  dados
-  .filter(d=>Object.values(d).some(v=>String(v).toLowerCase().includes(termo)))
-  .forEach(d=>{
+const cards=document.getElementById("cards");
 
-    const nomeCompleto=[d['TIPO'],d['COMPLEMENTO DO NOME'],d['NOME']]
-      .filter(Boolean).join(' ');
+cards.innerHTML='';
 
-    const terra=n(d['TERRA']);
-    const bloq=n(d['BLOQUETE']);
-    const para=n(d['PARALELEPÍPEDO']);
-    const asf=n(d['ASFALTO']);
+let totalCidade={terra:0,bloq:0,para:0,asf:0};
 
-    const totalRua = terra + bloq + para + asf;
+let contSemSaida=0;
 
-    totalCidade.terra+=terra;
-    totalCidade.bloq+=bloq;
-    totalCidade.para+=para;
-    totalCidade.asf+=asf;
+let contFechada=0;
 
-    const semSaida=String(d['SEM SAÍDA']).toUpperCase()==='SEM SAÍDA';
-    const fechada=String(d['FECHADA']).toUpperCase()==='FECHADA';
+dados
+.filter(d=>Object.values(d).some(v=>String(v).toLowerCase().includes(termo)))
+.forEach(d=>{
 
-    if(semSaida) contSemSaida++;
-    if(fechada) contFechada++;
+const nomeCompleto=[d['TIPO'],d['COMPLEMENTO DO NOME'],d['NOME']]
+.filter(Boolean).join(' ');
 
-    const linkMapa=coordsParaLink(d['COORDENADAS']||'');
+const terra=n(d['TERRA']);
+const bloq=n(d['BLOQUETE']);
+const para=n(d['PARALELEPÍPEDO']);
+const asf=n(d['ASFALTO']);
 
-    const card=document.createElement('div');
-    card.className='card';
-    card.innerHTML=`
-      <h3>${nomeCompleto}</h3>
-      ${semSaida?'<span class="tag sem-saida">SEM SAÍDA</span>':''}
-      ${fechada?'<span class="tag fechada">FECHADA</span>':''}
-      <div class="meta">Nome anterior: ${d['NOME ANTERIOR DA RUA']||'-'}</div>
-      <div class="meta">Mapa oficial: ${d['LOCALIZAÇÃO NO MAPA OFICIAL']||'-'}</div>
-      <div class="meta">Vila: ${d['VILA']||'-'} | Bairro: ${d['BAIRRO']||'-'}</div>
-      <div class="meta">CEP: ${d['CEP']||'-'}</div>
+const totalRua = terra + bloq + para + asf;
 
-      <div class="calc">
-        Terra: ${terra} m<br>
-        Bloquete: ${bloq} m<br>
-        Paralelepípedo: ${para} m<br>
-        Asfalto: ${asf} m<br><br>
-        <strong>Total da rua:</strong> ${totalRua} m
-      </div>
+totalCidade.terra+=terra;
+totalCidade.bloq+=bloq;
+totalCidade.para+=para;
+totalCidade.asf+=asf;
 
-      ${linkMapa?`<a class="btn" href="${linkMapa}" target="_blank">Ver no mapa</a>`:''}
-    `;
-    cards.appendChild(card);
-  });
+const semSaida=String(d['SEM SAÍDA']).toUpperCase()==='SEM SAÍDA';
+const fechada=String(d['FECHADA']).toUpperCase()==='FECHADA';
 
-  document.getElementById('totais').innerHTML=`
-    <h2>Totais Gerais da Cidade</h2>
-    Terra: ${totalCidade.terra} m<br>
-    Bloquete: ${totalCidade.bloq} m<br>
-    Paralelepípedo: ${totalCidade.para} m<br>
-    Asfalto: ${totalCidade.asf} m<br><br>
-    Ruas sem saída: ${contSemSaida}<br>
-    Ruas fechadas: ${contFechada}
-  `;
+if(semSaida) contSemSaida++;
+if(fechada) contFechada++;
+
+const linkMapa=coordsParaLink(d['COORDENADAS']||'');
+
+const card=document.createElement('div');
+
+card.className='card';
+
+card.innerHTML=`
+
+<h3>${nomeCompleto}</h3>
+
+${semSaida?'<span class="tag sem-saida">SEM SAÍDA</span>':''}
+${fechada?'<span class="tag fechada">FECHADA</span>':''}
+
+<div class="meta">Nome anterior: ${d['NOME ANTERIOR DA RUA']||'-'}</div>
+
+<div class="meta">Mapa oficial: ${d['LOCALIZAÇÃO NO MAPA OFICIAL']||'-'}</div>
+
+<div class="meta">Vila: ${d['VILA']||'-'} | Bairro: ${d['BAIRRO']||'-'}</div>
+
+<div class="meta">CEP: ${d['CEP']||'-'}</div>
+
+<div class="calc">
+
+Terra: ${terra} m<br>
+Bloquete: ${bloq} m<br>
+Paralelepípedo: ${para} m<br>
+Asfalto: ${asf} m<br><br>
+
+<strong>Total da rua:</strong> ${totalRua} m
+
+</div>
+
+${linkMapa?`<a class="btn" href="${linkMapa}" target="_blank">Ver no mapa</a>`:''}
+
+`;
+
+cards.appendChild(card);
+
+});
+
+document.getElementById('totais').innerHTML=`
+
+<h2>Totais Gerais da Cidade</h2>
+
+Terra: ${totalCidade.terra} m<br>
+Bloquete: ${totalCidade.bloq} m<br>
+Paralelepípedo: ${totalCidade.para} m<br>
+Asfalto: ${totalCidade.asf} m<br><br>
+
+Ruas sem saída: ${contSemSaida}<br>
+Ruas fechadas: ${contFechada}
+
+`;
+
 }
+
+carregarDados();
+
 </script>
+
 </body>
 </html>
